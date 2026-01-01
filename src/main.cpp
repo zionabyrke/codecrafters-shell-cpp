@@ -30,9 +30,21 @@ int main() {
     if (fspace_pos != std::string::npos){
       input.erase(0, fspace_pos + 1);
     }
+    else{
+      input.clear();
+    }
 
     if (command == "echo"){
       std::cout << input << std::endl;
+    }
+    else if(command == "type"){
+      std::cout << input;
+      if (input == "exit" || input == "echo" || input == "type"){
+        std::cout << " is a shell builtin" << std::endl;
+      }
+      else{
+        std::cout << ": not found" << std::endl;
+      }
     }
     else{
       std::cout << command << ": command not found" << std::endl;
