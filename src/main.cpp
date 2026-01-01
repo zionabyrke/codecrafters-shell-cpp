@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 
 int main() {
   
@@ -11,19 +12,27 @@ int main() {
     std::cerr << std::unitbuf;
 
     std::cout << "$ ";
+    std::string input = "";
     std::string command = "";
-    std::string arguments = "";
 
     // parsing: <command> [option] [argument]
-    std::cin >> command;
+    getline(std::cin, input);
+
+    // command
+    std::stringstream ss(input);
+    ss >> command;
     if (command == "exit"){
       break;
+    }    
+
+    // args: remove command
+    size_t fspace_pos = input.find(' ');
+    if (fspace_pos != std::string::npos){
+      input.erase(0, fspace_pos + 1);
     }
-    // remaining arguments w/o 1st space
-    getline(std::cin >> std::ws, arguments);
 
     if (command == "echo"){
-      std::cout << arguments << std::endl;
+      std::cout << input << std::endl;
     }
     else{
       std::cout << command << ": command not found" << std::endl;
