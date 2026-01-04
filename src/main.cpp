@@ -20,7 +20,7 @@
 
 namespace fs = std::filesystem;
 const char*PATH = std::getenv("PATH");
-const std::string BUILTINS[] = {"exit", "echo", "type"};
+const std::string BUILTINS[] = {"exit", "echo", "type", "pwd"};
 
 std::string pop_next_word(std::string input){
   // POPS the 1st word(command) from input
@@ -93,6 +93,10 @@ void execute(std::string command, std::string line){
   }
 }
 
+void pwd(){
+  std::cout << fs::current_path().string() << std::endl;
+}
+
 int main() {
   
   // REPL
@@ -126,6 +130,9 @@ int main() {
     }
     else if(command == "type"){
       type(pop_next_word(args));
+    }
+    else if(command == "pwd"){
+      pwd();
     }
     else if (!command.empty()){
       execute(command, line);
