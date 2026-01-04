@@ -3,6 +3,7 @@
 #include <sstream>
 #include <filesystem>
 #include <cstdlib>
+#include <unistd.h>
 #include <vector>
 
 #ifdef _WIN32
@@ -18,9 +19,10 @@
 #endif
 
 namespace fs = std::filesystem;
+const char*PATH = std::getenv("PATH");
 const std::string BUILTINS[] = {"exit", "echo", "type"};
 
-std::string remove_command(std::string input){
+std::string pop_next_word(std::string input){
   // POPS the 1st word(command) from input
   std::stringstream ss(input);
   std::string output = "";
@@ -41,12 +43,12 @@ void echo(std::string msg){
   std::cout << msg << std::endl;
 }
 
-bool check_path_exec(const std::string &command, const char *PATH) {
+bool check_path_exec(const std::string &command, bool exec=false) {
     if (PATH == nullptr){ 
       return false;
     }
     std::stringstream ss(PATH);
-    std::string dir;
+    std::string dir = "";
 
     while (std::getline(ss, dir, PATH_LIST_SEPARATOR)) {
         if (dir.empty()){
@@ -63,22 +65,32 @@ bool check_path_exec(const std::string &command, const char *PATH) {
 #ifndef _WIN32
         if (access(test_dir.c_str(), X_OK) != 0) continue;
 #endif
-        std::cout << command << " is " << test_dir.string() << std::endl;
+        if(!exec){
+          std::cout << command << " is " << test_dir.string() << std::endl;
+        }
         return true;
     }
     return false;
 }
 
-void type(std::string command, const char* PATH){
+void type(std::string command){
   if (is_builtin(command)){
     std::cout << command << " is a shell builtin" << std::endl;
     return;
   }
-  if (check_path_exec(command, PATH)){
+  if (check_path_exec(command)){
     return; // success
   }
   // unsuccessful
   std::cout << command << ": not found" << std::endl;
+}
+
+void execute(std::string command, std::string line){
+  if(check_path_exec(command, true)){
+    std::system(line.c_str());
+  }else{
+    std::cout << command << ": command not found" << std::endl;
+  }
 }
 
 int main() {
@@ -92,7 +104,6 @@ int main() {
     std::cout << "$ ";
 
     // variables
-    const char*PATH = std::getenv("PATH");
     std::string line = "";
     std::string command = "";
     std::string args = "";
@@ -104,7 +115,6 @@ int main() {
     // command
     std::istringstream iss(line);
     iss >> command;
-    //args
     std::getline(iss, args); // remove space
     if (!args.empty() && args[0] == ' ') args.erase(0, 1);
     
@@ -115,11 +125,10 @@ int main() {
       echo(args);
     }
     else if(command == "type"){
-      std::string next_command = remove_command(args);
-      type(next_command, PATH);
+      type(pop_next_word(args));
     }
-    else if (! command.empty()){
-      std::cout << command << ": command not found" << std::endl;
+    else if (!command.empty()){
+      execute(command, line);
     }
   }
 
