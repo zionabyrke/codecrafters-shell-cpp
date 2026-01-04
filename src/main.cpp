@@ -20,7 +20,7 @@
 
 namespace fs = std::filesystem;
 const char*PATH = std::getenv("PATH");
-const std::string BUILTINS[] = {"exit", "echo", "type", "pwd"};
+const std::string BUILTINS[] = {"exit", "echo", "type", "pwd", "cd"};
 
 std::string pop_next_word(std::string input){
   // POPS the 1st word(command) from input
@@ -97,6 +97,16 @@ void pwd(){
   std::cout << fs::current_path().string() << std::endl;
 }
 
+void cd(std::string dir){
+  fs::path fullpath = fs::current_path() / dir;
+  
+  if(fs::exists(fullpath)){
+    fs::current_path(fullpath);
+  }else{
+    std::cout << "cd: " << dir << ": No such file or directory" << std::endl;
+  }
+}
+
 int main() {
   
   // REPL
@@ -133,6 +143,9 @@ int main() {
     }
     else if(command == "pwd"){
       pwd();
+    }
+    else if(command == "cd"){
+      cd(args);
     }
     else if (!command.empty()){
       execute(command, line);
