@@ -97,8 +97,23 @@ void pwd(){
   std::cout << fs::current_path().string() << std::endl;
 }
 
+fs::path get_home_directory() {
+    const char* homeDir = nullptr;
+    homeDir = std::getenv("HOME"); // Linux/macOS/POSIX
+    if (homeDir != nullptr) {
+        return fs::path(homeDir);
+    } else {
+        return fs::path(); 
+    }
+} 
+
 void cd(std::string dir){
-  fs::path fullpath = fs::current_path() / dir;
+  fs::path fullpath;
+  if (dir == "~"){
+    fullpath = get_home_directory();
+  }else{
+    fullpath = fs::current_path() / dir;
+  } 
   
   if(fs::exists(fullpath)){
     fs::current_path(fullpath);
