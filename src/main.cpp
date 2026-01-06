@@ -24,6 +24,9 @@ const std::string BUILTINS[] = {"exit", "echo", "type", "pwd", "cd"};
 
 std::string pop_next_word(std::string input){
   // POPS the 1st word(command) from input
+  if(input.empty()){
+    return "";
+  }
   std::stringstream ss(input);
   std::string output = "";
   ss >> output;
@@ -40,7 +43,17 @@ bool is_builtin(const std::string &command){
 }
 
 void echo(std::string msg){
-  std::cout << msg << std::endl;
+  if(msg[0] == '\'' && msg[msg.size() - 1] == '\''){
+    std::cout << msg << std::endl;
+  }else{
+    std::stringstream ss(msg);
+    std::string m = "";
+    while(ss >> m){
+      std::cout << m << " ";
+    }
+    std::cout << std::endl;
+  }
+    
 }
 
 bool check_path_exec(const std::string &command, bool exec=false) {
@@ -109,7 +122,8 @@ fs::path get_home_directory() {
 
 void cd(std::string dir){
   fs::path fullpath;
-  if (dir == "~"){
+  std::string next_arg = pop_next_word(dir);
+  if (next_arg == "~"){
     fullpath = get_home_directory();
   }else{
     fullpath = fs::current_path() / dir;
