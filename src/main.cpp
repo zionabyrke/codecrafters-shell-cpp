@@ -44,6 +44,8 @@ bool is_builtin(const std::string &command){
 
 void echo(std::string msg){
   if(msg[0] == '\'' && msg[msg.size() - 1] == '\''){
+    msg.erase(0, 1);
+    msg.erase(msg.size() - 1);
     std::cout << msg << std::endl;
   }else{
     std::stringstream ss(msg);
