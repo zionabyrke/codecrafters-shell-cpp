@@ -43,19 +43,28 @@ bool is_builtin(const std::string &command){
 }
 
 void echo(const std::string& msg) {
-    bool in_quote = false;
+    bool in_single = false;
+    bool in_double = false;
     bool last_was_space = false;
     std::string output;
 
     for (size_t i = 0; i < msg.size(); ++i) {
         char c = msg[i];
 
-        if (c == '\'') {
-            in_quote = !in_quote; // toggle quote FINITE AUTOMATA
-            continue; // quotes are discarded from the output
+        // Toggle single quote only if not inside double quote
+        if (c == '\'' && !in_double) {
+            in_single = !in_single; //finite automata approach
+            continue; // '' discraded
         }
 
-        if (!in_quote && c == ' ') {
+        // Toggle double quote only if not inside single quote
+        if (c == '"' && !in_single) {
+            in_double = !in_double;
+            continue; // "" discarded
+        }
+
+        // Space handling
+        if (!in_single && !in_double && c == ' '){
             if (!last_was_space) {
                 output += ' '; // collapse multiple spaces
                 last_was_space = true;
