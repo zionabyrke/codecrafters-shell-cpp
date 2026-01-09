@@ -47,9 +47,20 @@ void echo(const std::string& msg) {
     bool in_double = false;
     bool last_was_space = false;
     std::string output;
+    int str_size = msg.size();
 
-    for (size_t i = 0; i < msg.size(); ++i) {
+    for (size_t i = 0; i < str_size; ++i) {
         char c = msg[i];
+
+        // backslashing
+        if(c == '\\' && !in_single){
+          if((i + 1) < str_size){
+            output += msg[i + 1];
+            last_was_space = false;
+            ++i;
+          }
+          continue;
+        }
 
         // Toggle single quote only if not inside double quote
         if (c == '\'' && !in_double) {
