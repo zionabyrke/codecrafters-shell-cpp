@@ -42,20 +42,31 @@ bool is_builtin(const std::string &command){
   return false;
 }
 
-void echo(std::string msg){
-  if(msg[0] == '\'' && msg[msg.size() - 1] == '\''){
-    msg.erase(0, 1);
-    msg.erase(msg.size() - 1);
-    std::cout << msg << std::endl;
-  }else{
-    std::stringstream ss(msg);
-    std::string m = "";
-    while(ss >> m){
-      std::cout << m << " ";
+void echo(const std::string& msg) {
+    bool in_quote = false;
+    bool last_was_space = false;
+    std::string output;
+
+    for (size_t i = 0; i < msg.size(); ++i) {
+        char c = msg[i];
+
+        if (c == '\'') {
+            in_quote = !in_quote; // toggle quote FINITE AUTOMATA
+            continue; // quotes are discarded from the output
+        }
+
+        if (!in_quote && c == ' ') {
+            if (!last_was_space) {
+                output += ' '; // collapse multiple spaces
+                last_was_space = true;
+            }
+        } else {
+            output += c;
+            last_was_space = false;
+        }
     }
-    std::cout << std::endl;
-  }
-    
+
+    std::cout << output << std::endl;
 }
 
 bool check_path_exec(const std::string &command, bool exec=false) {
