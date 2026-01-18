@@ -42,51 +42,45 @@ bool is_builtin(const std::string &command){
   return false;
 }
 
-void echo(const std::string& msg) {
-    bool in_single = false;
-    bool in_double = false;
-    bool last_was_space = false;
-    std::string output;
-    int str_size = msg.size();
+std::vector<std::string> tokenize(const std::string& line) {
+    std::vector<std::string> tokens;
+    std::string token;
+    char quote = 0;  // 0 = none, can be '\'' or '"'
 
-    for (size_t i = 0; i < str_size; ++i) {
-        char c = msg[i];
-
-        // backslashing
-        if(c == '\\' && !in_single){
-          if((i + 1) < str_size){
-            output += msg[i + 1];
-            last_was_space = false;
-            ++i;
-          }
-          continue;
-        }
-
-        // Toggle single quote only if not inside double quote
-        if (c == '\'' && !in_double) {
-            in_single = !in_single; //finite automata approach
-            continue; // '' discraded
-        }
-
-        // Toggle double quote only if not inside single quote
-        if (c == '"' && !in_single) {
-            in_double = !in_double;
-            continue; // "" discarded
-        }
-
-        // Space handling
-        if (!in_single && !in_double && c == ' '){
-            if (!last_was_space) {
-                output += ' '; // collapse multiple spaces
-                last_was_space = true;
+    for (char c : line) {
+        if (c == '\'' || c == '"') {
+            if (quote == 0) {
+                quote = c;
+            } else if (quote == c) {
+                quote = 0;
+            } else {
+                token += c;
             }
-        } else {
-            output += c;
-            last_was_space = false;
+        }
+        else if (c == ' ' && quote == 0) {
+            if (!token.empty()) {
+                tokens.push_back(token);
+                token.clear();
+            }
+        }
+        else {
+            token += c;
         }
     }
+    if (!token.empty()) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
 
-    std::cout << output << std::endl;
+void echo(const std::vector<std::string>& args) {
+    for (size_t i = 0; i < args.size(); ++i) {
+        std::cout << args[i];
+        if (i + 1 < args.size()) {
+            std::cout << " ";
+        }
+    }
+    std::cout << std::endl;
 }
 
 bool check_path_exec(const std::string &command, bool exec=false) {
@@ -119,24 +113,33 @@ bool check_path_exec(const std::string &command, bool exec=false) {
     return false;
 }
 
-void type(std::string command){
-  if (is_builtin(command)){
-    std::cout << command << " is a shell builtin" << std::endl;
-    return;
-  }
-  if (check_path_exec(command)){
-    return; // success
-  }
-  // unsuccessful
-  std::cout << command << ": not found" << std::endl;
+void type(const std::vector<std::string>& args) {
+    if (args.empty()){
+        return;
+    }
+    const std::string& command = args[0];
+
+    if (is_builtin(command)) {
+        std::cout << command << " is a shell builtin" << std::endl;
+        return;
+    }
+    if (check_path_exec(command)){
+        return;
+    }
+    std::cout << command << ": not found" << std::endl;
 }
 
-void execute(std::string command, std::string line){
-  if(check_path_exec(command, true)){
-    std::system(line.c_str());
-  }else{
-    std::cout << command << ": command not found" << std::endl;
-  }
+void execute(const std::string& command, const std::vector<std::string>& args) {
+    if (!check_path_exec(command, true)) {
+        std::cout << command << ": command not found" << std::endl;
+        return;
+    }
+    std::string cmd = command;
+    for (const auto& arg : args) {
+        cmd += " ";
+        cmd += arg;
+    }
+    std::system(cmd.c_str());
 }
 
 void pwd(){
@@ -153,20 +156,24 @@ fs::path get_home_directory() {
     }
 } 
 
-void cd(std::string dir){
-  fs::path fullpath;
-  std::string next_arg = pop_next_word(dir);
-  if (next_arg == "~"){
-    fullpath = get_home_directory();
-  }else{
-    fullpath = fs::current_path() / dir;
-  } 
-  
-  if(fs::exists(fullpath)){
-    fs::current_path(fullpath);
-  }else{
-    std::cout << "cd: " << dir << ": No such file or directory" << std::endl;
-  }
+void cd(const std::vector<std::string>& args) {
+    fs::path target;
+
+    if (args.empty() || args[0] == "~") {
+        target = get_home_directory();
+    } else {
+        target = fs::path(args[0]);
+        if (!target.is_absolute()) {
+            target = fs::current_path() / target;
+        }
+    }
+
+    if (fs::exists(target)) {
+        fs::current_path(target);
+    } else {
+        std::cout << "cd: " << target.string()
+                  << ": No such file or directory" << std::endl;
+    }
 }
 
 int main() {
@@ -181,18 +188,16 @@ int main() {
 
     // variables
     std::string line = "";
-    std::string command = "";
-    std::string args = "";
 
     // parsing: <command> [option] [argument]
     if (!std::getline(std::cin, line)){
       break; // input problem
     }
-    // command
-    std::istringstream iss(line);
-    iss >> command;
-    std::getline(iss, args); // remove space
-    if (!args.empty() && args[0] == ' ') args.erase(0, 1);
+    auto tokens = tokenize(line);
+    if (tokens.empty()) continue;
+
+    std::string command = tokens[0];
+    std::vector<std::string> args(tokens.begin() + 1, tokens.end());
     
     if (command == "exit"){
       break;
@@ -201,7 +206,7 @@ int main() {
       echo(args);
     }
     else if(command == "type"){
-      type(pop_next_word(args));
+      type(args);
     }
     else if(command == "pwd"){
       pwd();
@@ -210,7 +215,7 @@ int main() {
       cd(args);
     }
     else if (!command.empty()){
-      execute(command, line);
+      execute(command, args);
     }
   }
 
